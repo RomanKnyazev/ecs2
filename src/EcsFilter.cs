@@ -308,6 +308,11 @@ namespace Leopotam.Ecs2 {
             return ref _pool1.Items[_Get1[idx]];
         }
 
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public EcsComponentRef<Inc1> Get1Ref (int idx) {
+            return _pool1.Ref (_Get1[idx]);
+        }
+
         protected EcsFilter (EcsWorld world) {
             _allow1 = !EcsComponentType<Inc1>.IsIgnoreInFilter;
             _pool1 = world.GetPool<Inc1> ();
@@ -403,6 +408,16 @@ namespace Leopotam.Ecs2 {
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public ref Inc2 Get2 (int idx) {
             return ref _pool2.Items[_Get2[idx]];
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public EcsComponentRef<Inc1> Get1Ref (int idx) {
+            return _pool1.Ref (_Get1[idx]);
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public EcsComponentRef<Inc2> Get2Ref (int idx) {
+            return _pool2.Ref (_Get2[idx]);
         }
 
         protected EcsFilter (EcsWorld world) {

@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -50,6 +49,54 @@ namespace Leopotam.Ecs2 {
 
     public interface IEcsComponentPool {
         void Recycle (int idx);
+    }
+
+    /// <summary>
+    /// Helper for save reference to component. 
+    /// </summary>
+    /// <typeparam name="T">Type of component.</typeparam>
+    public struct EcsComponentRef<T> where T : struct {
+        internal EcsComponentPool<T> Pool;
+        internal int Idx;
+
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public ref T Unref () {
+            return ref Pool.Items[Idx];
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public static bool operator == (in EcsComponentRef<T> lhs, in EcsComponentRef<T> rhs) {
+            return lhs.Idx == rhs.Idx && lhs.Pool == rhs.Pool;
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public static bool operator != (in EcsComponentRef<T> lhs, in EcsComponentRef<T> rhs) {
+            return lhs.Idx != rhs.Idx || lhs.Pool != rhs.Pool;
+        }
+
+        public override bool Equals (object obj) {
+            return obj is EcsComponentRef<T> other && Equals (other);
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode () {
+            // ReSharper disable NonReadonlyMemberInGetHashCode
+            return Idx;
+            // ReSharper restore NonReadonlyMemberInGetHashCode
+        }
+
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public bool IsNull () {
+            return Pool != null;
+        }
     }
 
 #if ENABLE_IL2CPP
@@ -102,6 +149,14 @@ namespace Leopotam.Ecs2 {
                 Array.Resize (ref _reservedItems, _reservedItemsCount << 1);
             }
             _reservedItems[_reservedItemsCount++] = idx;
+        }
+
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public EcsComponentRef<T> Ref (int idx) {
+            EcsComponentRef<T> componentRef;
+            componentRef.Pool = this;
+            componentRef.Idx = idx;
+            return componentRef;
         }
     }
 }

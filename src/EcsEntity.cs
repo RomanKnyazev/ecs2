@@ -82,6 +82,7 @@ namespace Leopotam.Ecs2 {
 #if DEBUG
             throw new Exception ($"\"{typeof (T).Name}\" component not exists on entity.");
 #endif
+            // for compiler only.
             return ref EcsComponentPool<T>.Default;
         }
 
@@ -176,6 +177,24 @@ namespace Leopotam.Ecs2 {
             return Id;
         }
 
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public EcsComponentRef<T> Ref<T> () where T : struct {
+            ref var entityData = ref Owner.GetEntityData (this);
+#if DEBUG
+            if (entityData.Gen != Gen) { throw new Exception ("Cant wrap component on destroyed entity."); }
+#endif
+            var typeIdx = EcsComponentType<T>.TypeIndex;
+            for (int i = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2) {
+                if (entityData.Components[i] == typeIdx) {
+                    return ((EcsComponentPool<T>) Owner.ComponentPools[entityData.Components[i]]).Ref (entityData.Components[i + 1]);
+                }
+            }
+#if DEBUG
+            throw new Exception ($"\"{typeof (T).Name}\" component not exists on entity for wrapping.");
+#endif
+            return default;
+        }
+
         /// <summary>
         /// Removes components from entity and destroys it.
         /// </summary>
@@ -255,11 +274,11 @@ namespace Leopotam.Ecs2 {
             return entityData.ComponentsCountX2 <= 0 ? 0 : (entityData.ComponentsCountX2 >> 1);
         }
 
-        /// <summary>
-        /// Gets all components on entity.
-        /// </summary>
-        /// <param name="list">List to put results in it. if null - will be created.</param>
-        /// <returns>Amount of components in list.</returns>
+//         /// <summary>
+//         /// Gets all components on entity.
+//         /// </summary>
+//         /// <param name="list">List to put results in it. if null - will be created.</param>
+//         /// <returns>Amount of components in list.</returns>
 //         public int GetComponents (ref object[] list) {
 //             ref var entityData = ref Owner.GetEntityData (this);
 // #if DEBUG
@@ -274,6 +293,7 @@ namespace Leopotam.Ecs2 {
 //             }
 //             return itemsCount;
 //         }
+
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public static bool operator == (in EcsEntity lhs, in EcsEntity rhs) {
             return lhs.Id == rhs.Id && lhs.Gen == rhs.Gen;
