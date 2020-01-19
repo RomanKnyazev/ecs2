@@ -234,11 +234,10 @@ namespace Leopotam.Ecs2 {
             if (_leakedEntities.Count > 0) {
                 for (int i = 0, iMax = _leakedEntities.Count; i < iMax; i++) {
                     if (GetEntityData (_leakedEntities.Items[i]).ComponentsCountX2 == 0) {
-                        if (errorMsg!= null) {
+                        if (errorMsg != null) {
                             throw new Exception ($"{errorMsg}: Empty entity detected, possible memory leak.");
-                        } else {
-                            return true;
                         }
+                        return true;
                     }
                 }
                 _leakedEntities.Count = 0;

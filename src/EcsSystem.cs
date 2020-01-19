@@ -285,7 +285,7 @@ namespace Leopotam.Ecs2 {
                 }
 #if DEBUG
                 if (World.CheckForLeakedEntities (null)) {
-                    throw new Exception ($"{_runSystems.Items[i].GetType ().Name}.Run ()");
+                    throw new Exception ($"Empty entity detected, possible memory leak in {_runSystems.Items[i].GetType ().Name}.Run ()");
                 }
 #endif
             }
