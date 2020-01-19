@@ -410,13 +410,7 @@ namespace Leopotam.Ecs2 {
         void OnEntityCreated (EcsEntity entity);
         void OnEntityDestroyed (EcsEntity entity);
         void OnFilterCreated (EcsFilter filter);
-
-        // ReSharper disable UnusedParameter.Global
-        void OnComponentAdded (EcsEntity entity, object component);
-
-        void OnComponentRemoved (EcsEntity entity, object component);
-        // ReSharper restore UnusedParameter.Global
-
+        void OnComponentListChanged (EcsEntity entity);
         void OnWorldDestroyed ();
     }
 #endif

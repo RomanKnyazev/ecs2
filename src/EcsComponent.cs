@@ -48,6 +48,8 @@ namespace Leopotam.Ecs2 {
     }
 
     public interface IEcsComponentPool {
+        Type ItemType { get; }
+        object GetItem (int idx);
         void Recycle (int idx);
     }
 
@@ -104,13 +106,17 @@ namespace Leopotam.Ecs2 {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public sealed class EcsComponentPool<T> : IEcsComponentPool where T : struct {
+        public Type ItemType { get; }
         public T[] Items = new T[128];
         int[] _reservedItems = new int[128];
         int _itemsCount;
         int _reservedItemsCount;
         internal static T Default;
 
-        internal EcsComponentPool () { }
+        internal EcsComponentPool () {
+            ItemType = typeof (T);
+        }
+
 
         /// <summary>
         /// Sets new capacity (if more than current amount).
@@ -157,6 +163,10 @@ namespace Leopotam.Ecs2 {
             componentRef.Pool = this;
             componentRef.Idx = idx;
             return componentRef;
+        }
+
+        object IEcsComponentPool.GetItem (int idx) {
+            return Items[idx];
         }
     }
 }

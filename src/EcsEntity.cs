@@ -6,6 +6,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace Leopotam.Ecs2 {
     /// <summary>
@@ -50,10 +51,9 @@ namespace Leopotam.Ecs2 {
             var idx = pool.New ();
             entityData.Components[entityData.ComponentsCountX2++] = idx;
 #if DEBUG
-            // var component = pool.Items[idx];
-            // for (var ii = 0; ii < Owner.DebugListeners.Count; ii++) {
-            //     Owner.DebugListeners[ii].OnComponentAdded (this, component);
-            // }
+            for (var ii = 0; ii < Owner.DebugListeners.Count; ii++) {
+                Owner.DebugListeners[ii].OnComponentListChanged (this);
+            }
 #endif
             Owner.UpdateFilters (typeIdx, this, entityData);
             return ref pool.Items[idx];
@@ -128,9 +128,9 @@ namespace Leopotam.Ecs2 {
                         entityData.Components[i + 1] = entityData.Components[entityData.ComponentsCountX2 + 1];
                     }
 #if DEBUG
-                    // for (var ii = 0; ii < Owner.DebugListeners.Count; ii++) {
-                    //     Owner.DebugListeners[ii].OnComponentRemoved (this, removedComponent);
-                    // }
+                    for (var ii = 0; ii < Owner.DebugListeners.Count; ii++) {
+                        Owner.DebugListeners[ii].OnComponentListChanged (this);
+                    }
 #endif
                     break;
                 }
@@ -216,15 +216,12 @@ namespace Leopotam.Ecs2 {
             // remove components first.
             for (var i = entityData.ComponentsCountX2 - 2; i >= 0; i -= 2) {
                 savedEntity.Owner.UpdateFilters (-entityData.Components[i], savedEntity, entityData);
-#if DEBUG
-                // var removedComponent = savedEntity.Owner.ComponentPools[entityData.Components[i]].GetItem (entityData.Components[i + 1]);
-#endif
                 savedEntity.Owner.ComponentPools[entityData.Components[i]].Recycle (entityData.Components[i + 1]);
                 entityData.ComponentsCountX2 -= 2;
 #if DEBUG
-//                 for (var ii = 0; ii < savedEntity.Owner.DebugListeners.Count; ii++) {
-//                     savedEntity.Owner.DebugListeners[ii].OnComponentRemoved (savedEntity, removedComponent);
-//                 }
+                for (var ii = 0; ii < savedEntity.Owner.DebugListeners.Count; ii++) {
+                    savedEntity.Owner.DebugListeners[ii].OnComponentListChanged (savedEntity);
+                }
 #endif
             }
             entityData.ComponentsCountX2 = 0;
@@ -274,25 +271,45 @@ namespace Leopotam.Ecs2 {
             return entityData.ComponentsCountX2 <= 0 ? 0 : (entityData.ComponentsCountX2 >> 1);
         }
 
-//         /// <summary>
-//         /// Gets all components on entity.
-//         /// </summary>
-//         /// <param name="list">List to put results in it. if null - will be created.</param>
-//         /// <returns>Amount of components in list.</returns>
-//         public int GetComponents (ref object[] list) {
-//             ref var entityData = ref Owner.GetEntityData (this);
-// #if DEBUG
-//             if (entityData.Gen != Gen) { throw new Exception ("Cant touch destroyed entity."); }
-// #endif
-//             var itemsCount = entityData.ComponentsCountX2 >> 1;
-//             if (list == null || list.Length < itemsCount) {
-//                 list = new object[itemsCount];
-//             }
-//             for (int i = 0, j = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2, j++) {
-//                 list[j] = Owner.ComponentPools[entityData.Components[i]].GetItem (entityData.Components[i + 1]);
-//             }
-//             return itemsCount;
-//         }
+        /// <summary>
+        /// Gets types of all attached components.
+        /// </summary>
+        /// <param name="list">List to put results in it. if null - will be created. If not enough space - will be resized.</param>
+        /// <returns>Amount of components in list.</returns>
+        public int GetComponentTypes (ref Type[] list) {
+            ref var entityData = ref Owner.GetEntityData (this);
+#if DEBUG
+            if (entityData.Gen != Gen) { throw new Exception ("Cant touch destroyed entity."); }
+#endif
+            var itemsCount = entityData.ComponentsCountX2 >> 1;
+            if (list == null || list.Length < itemsCount) {
+                list = new Type[itemsCount];
+            }
+            for (int i = 0, j = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2, j++) {
+                list[j] = Owner.ComponentPools[entityData.Components[i]].ItemType;
+            }
+            return itemsCount;
+        }
+
+        /// <summary>
+        /// Gets types of all attached components. Important: force boxing / unboxing!
+        /// </summary>
+        /// <param name="list">List to put results in it. if null - will be created. If not enough space - will be resized.</param>
+        /// <returns>Amount of components in list.</returns>
+        public int GetComponentValues (ref object[] list) {
+            ref var entityData = ref Owner.GetEntityData (this);
+#if DEBUG
+            if (entityData.Gen != Gen) { throw new Exception ("Cant touch destroyed entity."); }
+#endif
+            var itemsCount = entityData.ComponentsCountX2 >> 1;
+            if (list == null || list.Length < itemsCount) {
+                list = new System.Object[itemsCount];
+            }
+            for (int i = 0, j = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2, j++) {
+                list[j] = Owner.ComponentPools[entityData.Components[i]].GetItem (entityData.Components[i + 1]);
+            }
+            return itemsCount;
+        }
 
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public static bool operator == (in EcsEntity lhs, in EcsEntity rhs) {
