@@ -17,6 +17,13 @@ namespace Leopotam.Ecs2 {
     public interface IEcsIgnoreInFilter { }
 
     /// <summary>
+    /// Marks component to be checked for AutoReset behaviour.
+    /// </summary>
+    [System.Diagnostics.Conditional ("DEBUG")]
+    [AttributeUsage (AttributeTargets.Struct)]
+    public sealed class EcsAutoResetCheckAttribute : Attribute { }
+
+    /// <summary>
     /// Marks field of IEcsSystem class to be ignored during dependency injection.
     /// </summary>
     public sealed class EcsIgnoreInjectAttribute : Attribute { }
@@ -30,12 +37,18 @@ namespace Leopotam.Ecs2 {
         public static readonly int TypeIndex;
         public static readonly Type Type;
         public static readonly bool IsIgnoreInFilter;
+#if DEBUG
+        internal static readonly bool NeedCheckAutoReset;
+#endif
         // ReSharper restore StaticMemberInGenericType
 
         static EcsComponentType () {
             TypeIndex = Interlocked.Increment (ref EcsComponentPool.ComponentTypesCount);
             Type = typeof (T);
             IsIgnoreInFilter = typeof (IEcsIgnoreInFilter).IsAssignableFrom (Type);
+#if DEBUG
+            NeedCheckAutoReset = Attribute.IsDefined (typeof (T), typeof (EcsAutoResetCheckAttribute));
+#endif
         }
     }
 
@@ -106,17 +119,30 @@ namespace Leopotam.Ecs2 {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public sealed class EcsComponentPool<T> : IEcsComponentPool where T : struct {
+        /// <summary>
+        /// Description of custom AutoReset handler.
+        /// </summary>
+        public delegate void AutoResetHandler (ref T component);
+
         public Type ItemType { get; }
         public T[] Items = new T[128];
         int[] _reservedItems = new int[128];
         int _itemsCount;
         int _reservedItemsCount;
+        AutoResetHandler _autoReset = null;
         internal static T Default = default;
 
         internal EcsComponentPool () {
             ItemType = typeof (T);
         }
 
+        /// <summary>
+        /// Sets custom AutoReset behaviour handler. If null - disable custom behaviour and use default.
+        /// </summary>
+        /// <param name="cb">Handler.</param>
+        public void SetAutoReset (AutoResetHandler cb) {
+            _autoReset = cb;
+        }
 
         /// <summary>
         /// Sets new capacity (if more than current amount).
@@ -138,6 +164,11 @@ namespace Leopotam.Ecs2 {
                 if (_itemsCount == Items.Length) {
                     Array.Resize (ref Items, _itemsCount << 1);
                 }
+#if DEBUG
+                if (EcsComponentType<T>.NeedCheckAutoReset && _autoReset == null) { throw new Exception ($"AutoReset handler for component \"{ItemType.Name}\" should be initialized first."); }
+#endif
+                // reset brand new instance if custom AutoReset was registered.
+                _autoReset?.Invoke (ref Items[_itemsCount]);
                 _itemsCount++;
             }
             return id;
@@ -150,7 +181,11 @@ namespace Leopotam.Ecs2 {
 
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public void Recycle (int idx) {
-            Items[idx] = default;
+            if (_autoReset != null) {
+                _autoReset (ref Items[idx]);
+            } else {
+                Items[idx] = default;
+            }
             if (_reservedItemsCount == _reservedItems.Length) {
                 Array.Resize (ref _reservedItems, _reservedItemsCount << 1);
             }

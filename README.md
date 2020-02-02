@@ -367,6 +367,28 @@ EcsFilter<C2> _filter2 = null;
 Current implementation of foreach-loop fast enough (custom enumerator, no memory allocation), small performance differences can be found on 10k items and more. Current version doesnt support for-loop iterations anymore.
 
 
+### I copy&paste my reset components code again and again. How I can do it in other manner?
+
+If you want to simplify your code and keep reset/init code at one place, you can setup custom handler to process cleanup / initialization for component:
+```csharp
+[EcsAutoResetCheck]
+struct MyComponent {
+    public int Id;
+    public object LinkToAnotherComponent;
+
+    public static void CustomReset (ref MyComponent c) {
+        c.Id = 2;
+        c.LinkToAnotherComponent = null;
+    }
+}
+...
+world.GetPool<MyComponent> ().SetAutoReset (MyComponent.CustomReset);
+```
+This method will be automatically called for brand new component instance and after component removing from entity and before recycling to component pool.
+> Important: With custom `AutoReset` behaviour there are no any additional checks for reference-type fields, you should provide correct cleanup/init behaviour without possible memory leaks.
+
+> Important: Attribute `[EcsAutoResetCheck]` can be useful for mark components that should have custom `AutoReset` behaviour. This attribute works in `DEBUG` mode only.  
+
 ### I use components as events that works only one frame, then remove it at last system in execution sequence. It's boring, how I can automate it?
 
 If you want to remove one-frame components without additional custom code, you can register them at `EcsSystems`:
