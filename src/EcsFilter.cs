@@ -313,6 +313,43 @@ namespace Leopotam.Ecs2 {
             return _pool1.Ref (_Get1[idx]);
         }
 
+        /// <summary>
+        /// Optimizes filtered data for fast access.
+        /// </summary>
+        public void Optimize () {
+            OptimizeSort (0, EntitiesCount - 1);
+        }
+
+        void OptimizeSort (int left, int right) {
+            if (left < right) {
+                var q = OptimizeSortPartition (left, right);
+                OptimizeSort (left, q - 1);
+                OptimizeSort (q + 1, right);
+            }
+        }
+
+        int OptimizeSortPartition (int left, int right) {
+            var pivot = _Get1[right];
+            var pivotE = Entities[right];
+            var i = left;
+            for (var j = left; j < right; j++) {
+                if (_Get1[j] <= pivot) {
+                    var c = _Get1[j];
+                    _Get1[j] = _Get1[i];
+                    _Get1[i] = c;
+                    var e = Entities[j];
+                    Entities[j] = Entities[i];
+                    Entities[i] = e;
+                    i++;
+                }
+            }
+            _Get1[right] = _Get1[i];
+            _Get1[i] = pivot;
+            Entities[right] = Entities[i];
+            Entities[i] = pivotE;
+            return i;
+        }
+
         protected EcsFilter (EcsWorld world) {
             _allow1 = !EcsComponentType<Inc1>.IsIgnoreInFilter;
             _pool1 = world.GetPool<Inc1> ();
