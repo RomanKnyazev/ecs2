@@ -6,7 +6,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using UnityEngine;
 
 namespace Leopotam.Ecs2 {
     /// <summary>
