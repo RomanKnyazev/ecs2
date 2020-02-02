@@ -60,7 +60,7 @@ namespace Leopotam.Ecs2 {
         }
 
         /// <summary>
-        /// Gets component attached to entity or null.
+        /// Gets component attached to entity. Important: will throw exception in DEBUG mode if component doesn't exist.
         /// </summary>
         /// <typeparam name="T">Type of component.</typeparam>
 #if ENABLE_IL2CPP
@@ -84,6 +84,29 @@ namespace Leopotam.Ecs2 {
 #endif
             // for compiler only.
             return ref EcsComponentPool<T>.Default;
+        }
+        
+        /// <summary>
+        /// Checks that component is attached to entity.
+        /// </summary>
+        /// <typeparam name="T">Type of component.</typeparam>
+#if ENABLE_IL2CPP
+        [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+        [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        public bool Has<T> () where T : struct {
+            ref var entityData = ref Owner.GetEntityData (this);
+#if DEBUG
+            if (entityData.Gen != Gen) { throw new Exception ("Cant check component on destroyed entity."); }
+#endif
+            var typeIdx = EcsComponentType<T>.TypeIndex;
+            for (int i = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2) {
+                if (entityData.Components[i] == typeIdx) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
