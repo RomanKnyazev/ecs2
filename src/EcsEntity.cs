@@ -81,11 +81,12 @@ namespace Leopotam.Ecs2 {
             }
 #if DEBUG
             throw new Exception ($"\"{typeof (T).Name}\" component not exists on entity.");
-#endif
+#else
             // for compiler only.
             return ref EcsComponentPool<T>.Default;
+#endif
         }
-        
+
         /// <summary>
         /// Checks that component is attached to entity.
         /// </summary>
@@ -214,8 +215,9 @@ namespace Leopotam.Ecs2 {
             }
 #if DEBUG
             throw new Exception ($"\"{typeof (T).Name}\" component not exists on entity for wrapping.");
-#endif
+#else
             return default;
+#endif
         }
 
         /// <summary>

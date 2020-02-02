@@ -111,7 +111,7 @@ namespace Leopotam.Ecs2 {
         int[] _reservedItems = new int[128];
         int _itemsCount;
         int _reservedItemsCount;
-        internal static T Default;
+        internal static T Default = default;
 
         internal EcsComponentPool () {
             ItemType = typeof (T);
