@@ -797,7 +797,7 @@ namespace Leopotam.Ecs2 {
                     _Get3[EntitiesCount] = itemIdx;
                     allow3 = false;
                 }
-                if (allow4 && typeIdx == EcsComponentType<Inc3>.TypeIndex) {
+                if (allow4 && typeIdx == EcsComponentType<Inc4>.TypeIndex) {
                     _Get4[EntitiesCount] = itemIdx;
                     allow4 = false;
                 }
