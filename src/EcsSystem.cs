@@ -72,7 +72,6 @@ namespace Leopotam.Ecs2 {
         readonly EcsGrowList<EcsSystemsRunItem> _runSystems = new EcsGrowList<EcsSystemsRunItem> (64);
         readonly Dictionary<int, int> _namedRunSystems = new Dictionary<int, int> (64);
         readonly Dictionary<Type, object> _injections = new Dictionary<Type, object> (32);
-        readonly Dictionary<Type, EcsFilter> _oneFrames = new Dictionary<Type, EcsFilter> (32);
         bool _injected;
 #if DEBUG
         bool _inited;
@@ -172,13 +171,6 @@ namespace Leopotam.Ecs2 {
         }
 
         /// <summary>
-        /// Gets all one-frame components. Important: Don't change collection!
-        /// </summary>
-        public Dictionary<Type, EcsFilter> GetOneFrames () {
-            return _oneFrames;
-        }
-
-        /// <summary>
         /// Injects instance of object type to all compatible fields of added systems.
         /// </summary>
         /// <param name="obj">Instance.</param>
@@ -217,14 +209,10 @@ namespace Leopotam.Ecs2 {
         }
 
         /// <summary>
-        /// Registers component type as one-frame for auto-removing at end of Run() call.
+        /// Registers component type as one-frame for auto-removing at this point in execution sequence.
         /// </summary>
         public EcsSystems OneFrame<T> () where T : struct {
-#if DEBUG
-            if (_inited) { throw new Exception ("Cant register one-frame after initialization."); }
-            if (_oneFrames.ContainsKey (typeof (T))) { throw new Exception ($"\"{typeof (T).Name}\" already registered as one-frame component."); }
-#endif
-            _oneFrames[typeof (T)] = World.GetFilter (typeof (EcsFilter<T>));
+            Add (new RemoveOneFrame<T> ());
             return this;
         }
 
@@ -263,17 +251,9 @@ namespace Leopotam.Ecs2 {
         }
 
         /// <summary>
-        /// Processes all IEcsRunSystem systems. OneFrame components will be removed automatically.
-        /// </summary>
-        public void Run () {
-            Run (true);
-        }
-
-        /// <summary>
         /// Processes all IEcsRunSystem systems.
         /// </summary>
-        /// <param name="removeOneFrames">Should OneFrame components will be removed or not.</param>
-        public void Run (bool removeOneFrames) {
+        public void Run () {
 #if DEBUG
             if (!_inited) { throw new Exception ($"[{Name ?? "NONAME"}] EcsSystems should be initialized before."); }
             if (_destroyed) { throw new Exception ("Cant touch after destroy."); }
@@ -288,14 +268,6 @@ namespace Leopotam.Ecs2 {
                     throw new Exception ($"Empty entity detected, possible memory leak in {_runSystems.Items[i].GetType ().Name}.Run ()");
                 }
 #endif
-            }
-            // remove one-frame components.
-            foreach (var pair in _oneFrames) {
-                var filter = pair.Value;
-                var typeIdx = filter.IncludedTypeIndices[0];
-                foreach (var idx in filter) {
-                    filter.Entities[idx].Unset (typeIdx);
-                }
             }
         }
 
@@ -373,6 +345,20 @@ namespace Leopotam.Ecs2 {
                         break;
                     }
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// System for removing OneFrame component.
+    /// </summary>
+    /// <typeparam name="T">OneFrame component type.</typeparam>
+    sealed class RemoveOneFrame<T> : IEcsRunSystem where T : struct {
+        readonly EcsFilter<T> _oneFrames = null;
+
+        void IEcsRunSystem.Run () {
+            foreach (var idx in _oneFrames) {
+                _oneFrames.Entities[idx].Unset<T> ();
             }
         }
     }
